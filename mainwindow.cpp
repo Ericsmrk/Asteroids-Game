@@ -34,79 +34,18 @@
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-
-    // add drop down menus (currently empty)
-    //QMenu*  fileMenu = menuBar()->addMenu("&File");
-
-    //QAction* openAction = fileMenu->addAction("&Open", this, SLOT(fileOpen()));
-    //openAction->setShortcut(QKeySequence::Open);
-
-    //**************
-    //setFixedSize(1200, 700);
-    // add drop down menus
     QMenu*  fileMenu = menuBar()->addMenu( "&File" );
-    //QMenu*  editMenu = menuBar()->addMenu( "&Game Mode Edit" );
-    //QMenu*  viewMenu = menuBar()->addMenu( "&Game View" );
-    //menuBar()->addMenu( "&Peferences" );
-    //menuBar()->addMenu( "&Help" );
 
     // create file menu options
     QAction* newAction     = fileMenu->addAction( "&New", this, SLOT(fileNew()) );
-    //QAction* saveAction    = fileMenu->addAction( "&Save As...",       this, SLOT(fileSaveAs()) );
-    //QAction* openAction    = fileMenu->addAction( "&Open ...",         this, SLOT(fileOpen()) );
+
     fileMenu->addSeparator();
-    //QAction* previewAction = fileMenu->addAction( "Print pre&view...", this, SLOT(filePrintPreview()) );
-    //QAction* printAction   = fileMenu->addAction( "&Print...",         this, SLOT(filePrint()) );
-    //fileMenu->addSeparator();
     fileMenu->addAction( "&Quit", this, SLOT(close()) );
     newAction->setShortcut( QKeySequence::New );
-    //saveAction->setShortcut( QKeySequence::Save );
-    //openAction->setShortcut( QKeySequence::Open );
-    //printAction->setShortcut( QKeySequence::Print );
 
     // create undo stack and associated menu actions
     m_undoStack = new QUndoStack( this );
     m_undoView  = 0;
-    //viewMenu->addAction( "Undo stack", this, SLOT(showUndoStack()) );
-    //QAction* undoAction = m_undoStack->createUndoAction( this );
-    //QAction* redoAction = m_undoStack->createRedoAction( this );
-    //undoAction->setShortcut( QKeySequence::Undo );
-    //redoAction->setShortcut( QKeySequence::Redo );
-    //editMenu->addAction( undoAction );
-    //editMenu->addAction( redoAction );
-
-    /* create toolbar, set icon size, and add actions
-    QToolBar*   toolBar = addToolBar( "Standard" );
-    QStyle*     style   = this->style();
-    QSize       size    = style->standardIcon(QStyle::SP_DesktopIcon).actualSize( QSize(99,99) );
-    toolBar->setIconSize( size );
-    newAction->setIcon( style->standardIcon(QStyle::SP_DesktopIcon) );
-    openAction->setIcon( style->standardIcon(QStyle::SP_DialogOpenButton) );
-    saveAction->setIcon( style->standardIcon(QStyle::SP_DialogSaveButton) );
-    //previewAction->setIcon( style->standardIcon(QStyle::SP_FileDialogContentsView) );
-    //printAction->setIcon( style->standardIcon(QStyle::SP_ComputerIcon) );
-    undoAction->setIcon( style->standardIcon(QStyle::SP_ArrowBack) );
-    redoAction->setIcon( style->standardIcon(QStyle::SP_ArrowForward) );
-    toolBar->addAction( newAction );
-    toolBar->addAction( openAction );
-    toolBar->addAction( saveAction );
-    toolBar->addSeparator();
-    //toolBar->addAction( previewAction );
-    //toolBar->addAction( printAction );
-    toolBar->addSeparator();
-    toolBar->addAction( undoAction );
-    toolBar->addAction( redoAction );
-    //**************/
-
-    //QAction* exitAction = fileMenu->addAction("&Close", this, SLOT(closeEvent(QCloseEvent*)));
-    //exitAction->setShortcut(QKeySequence::Close);
-
-    //menuBar()->addMenu("&Edit");
-    //menuBar()->addMenu("&View");
-    //menuBar()->addMenu("&Simulate");
-    //menuBar()->addMenu("&Help");
-
-    //myRect *player = new myRect(); //Creating player
 
     // create scene and central widget view of scene
     m_scene               = new Scene(m_undoStack);
@@ -124,13 +63,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     view->show();
     view->setFixedSize(800, 600);//Set the view to a fixed size.
     m_scene->setSceneRect(0, 0, 800, 600);
-
-    //Player added when file NEW command is called.
-    //player->setPos(view->width() / 2, view->height()/ 2); //Set player in the middle.
-    //Spawn Enemies
-    //QTimer * timer = new QTimer();
-    //QObject::connect(timer, SIGNAL(timeout()), player, SLOT(spawn()));
-    //timer->start(1000/33); //Make an enemy every 2000 milli-seconds
 
     // connect message signal from scene to showMessage slot
     connect( m_scene, SIGNAL(message(QString)), this, SLOT(showMessage(QString)) );
@@ -295,39 +227,27 @@ bool  MainWindow::fileOpen()
 
 void  MainWindow::fileNew()
 {
-  // if no stations (only default top-left scene anchor) then nothing to do
-  //if ( m_scene->items().count() >= 0) return;
+  m_undoStack->clear();
+  Scene*          newScene = new Scene( m_undoStack );
+  QGraphicsView*  view     = dynamic_cast<QGraphicsView*>( centralWidget() );
+  view->setScene( newScene );
+  delete m_scene;
+  m_scene = newScene;
 
+  QTimer * timer = new QTimer();
+  myRect *player = new myRect(timer); //Creating player, and passing a Timer.
 
-  //check if user wants to save before starting new simulation
-  while (true)
-    switch ( QMessageBox::warning( this, "QSimulate",
-        "Do you want to save before starting new?",
-        QMessageBox::Discard | QMessageBox::Cancel ) )
-    {
+  m_scene->addItem(player);
+  //Set player in the middle.
+  player->setPos(800 / 2, 600/ 2); //Set player in the middle.
+  //Spawn Enemies
+  //QTimer * timer = new QTimer();
 
-      case QMessageBox::Discard:
-        // start new simulation
-        {
-          m_undoStack->clear();
-          Scene*          newScene = new Scene( m_undoStack );
-          QGraphicsView*  view     = dynamic_cast<QGraphicsView*>( centralWidget() );
-          view->setScene( newScene );
-          delete m_scene;
-          m_scene = newScene;
+  //player->updateLevel(2);
 
-          myRect *player = new myRect(); //Creating player
-          m_scene->addItem(player);
-          //Set player in the middle.
-          player->setPos(800 / 2, 600/ 2); //Set player in the middle.
-          //Spawn Enemies
-          QTimer * timer = new QTimer();
-          QObject::connect(timer, SIGNAL(timeout()), player, SLOT(spawn()));
-          timer->start(1000/33); //Make an enemy every 2000 milli-seconds
+  QObject::connect(timer, SIGNAL(timeout()), player, SLOT(spawn()));
 
-          return;
-        }
-    }
+  timer->start(1000/33); //Make an enemy every 2000 milli-seconds
 }
 
 /************************************ closeEvent *************************************/

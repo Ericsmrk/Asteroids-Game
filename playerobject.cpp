@@ -13,9 +13,19 @@
 using namespace std;
 
 //Constructor.
-myRect::myRect() : QGraphicsPixmapItem()
+//The Timer is passed in order to create bullet and astroid movement.
+myRect::myRect(QTimer * timer) : QGraphicsPixmapItem()
 {
-    setPixmap(QPixmap(":/new/files/ship_01.png")); //Ship image.
+    int count;
+    limit = 0;
+
+    player_timer = timer;
+
+    //Ship Width and Height.
+    width = 50/2;
+    height = 66/2;
+
+    setPixmap(QPixmap(":/new/files/Standard_Ship_01.png")); //Ship image.
 
     setFlag(QGraphicsItem::ItemIsFocusable);
     setFocus();
@@ -26,6 +36,7 @@ myRect::myRect() : QGraphicsPixmapItem()
 
     //Set Speed
     speed = 2.0; //5 pixels at a time.
+    angle = 0.0;
 }
 
 
@@ -39,26 +50,40 @@ void myRect::keyPressEvent(QKeyEvent *event)
     float move_x;
     float move_y;
 
+    //When User presses the Left key.
     if (event->key() == Qt::Key_Left)
     {
+        //Change the Angle to the Left by 5 Degress.
         angle = angle-5.0;
-        if (angle < 0)
-            angle = angle + 360.0;
-        else if (angle > 360)
-            angle = angle - 360;
 
+        //Adjust Angle if it goes beyond 0 to 360 Degrees.
+        if (angle < 0.0)
+            angle = angle + 360.0;
+
+        else if (angle > 360.0)
+            angle = angle - 360.0;
+
+        //Rotate by the Angle.
         if (pos().x() > 0)
         {
             setRotation(angle);
         }
     }
+
+    //When User presses the Right key.
     else if (event->key() == Qt::Key_Right)
     {
+        //Change the Angle to the Left by 5 Degress.
         angle = angle+5.0;
-        if (angle < 0)
+
+        //Adjust Angle if it goes beyond 0 to 360 Degrees.
+        if (angle < 0.0)
             angle = angle + 360.0;
-        else if (angle > 360)
+
+        else if (angle > 360.0)
             angle = angle - 360;
+
+        //Rotate by the Angle.
         if (pos().x() + 100 < 800)
         {
             setRotation(angle);//Rotates the item.
@@ -71,24 +96,25 @@ void myRect::keyPressEvent(QKeyEvent *event)
         if (pos().y() > 0)
         {
             qDebug() << "(x, y): " << x() << " / " << y();
-            //setPos((x, y)) sets the position of the ship.
-            //#cos(angle).
 
+            //It works. Don't Touch it. :)
             move_y = -speed*cos(qDegreesToRadians(angle));
-
             move_x = speed*sin(qDegreesToRadians(angle));
 
             qDebug() << "move_x: " << move_x
                      << " move_y: " << move_y;
 
             setPos(x() + move_x, y()+ move_y);
-
+            //This stacks the speed of the ship when going in one direction too much.
             speed_x = speed_x + move_x;
             speed_y = speed_y + (-move_y);
         }
     }
+
+    //Possible brake button.
     else if (event->key() == Qt::Key_Down)
     {
+
     }
     else if (event->key() == Qt::Key_Space)
     {
@@ -96,45 +122,48 @@ void myRect::keyPressEvent(QKeyEvent *event)
         Bullet * bullet = new Bullet();
 
         //Set position of the bullet.
-        bullet->setPos(x() + 40, y() - 54);
+        bullet->setPos(x() + (width-5), y()-(height+10));
+        bullet->updateBullet(angle, speed_x, speed_y);
 
         //qDebug() << "Bullet created";
         scene()->addItem(bullet);
+
+        QObject::connect(player_timer, SIGNAL(timeout()), bullet, SLOT(move()));
     }
 }
 
-//Determine coordinate points based off of Angle, speed, and previous position.
-void myRect::find_pos(float & pos_x, float & pos_y)
+void myRect::updateLevel(int given_level)
 {
-
-}
-
-QRectF myRect::boundingRect() const
-{
-    return QRectF(0, 0, 79, 111);
-}
-
-void myRect::advance(int phase)
-{
-    if (!phase)
-        return;
-
-    QPointF location = this->pos();
-    setPos( mapToParent(0, -(speed)) );
+    level = given_level;
 }
 
 void myRect::spawn()
 {
-    //Add enemy.
-    if (enemy_amount == 1)
-    {
-        Enemy * enemy = new Enemy();
-        scene()->addItem(enemy);
+    int count;
 
-        enemy_amount++;
+    //This is just bad, imma fix it later.
+    if (enemy_amount > limit)
+    {
+        for (count = 0; count < enemy_amount; count++)
+        {
+            qDebug() << "Enemy being made...";
+            qDebug() << "Count: " << count;
+            Enemy * enemy = new Enemy();
+            scene()->addItem(enemy);
+            QObject::connect(player_timer, SIGNAL(timeout()), enemy, SLOT(move()));
+            if (count == enemy_amount)
+                break;
+        }
+        limit = enemy_amount;
     }
 
     //Player velocity is being moved.setPos()
     setPos(x()+ speed_x, y()-speed_y);//speed_y
+
+}
+
+void myRect::respond()
+{
+    qDebug() << "Responding ...";
 
 }
